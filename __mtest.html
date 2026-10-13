@@ -1,0 +1,44 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head>
+<body style="margin:0">
+<pre id="out">pending</pre>
+<script>
+// Temporary mobile audit harness: loads the page in iframes at real phone widths
+// and reports any element that extends past the viewport (which overflow-x:hidden would silently clip).
+const widths = [320, 360, 390, 430, 768];
+const results = [];
+let done = 0;
+widths.forEach((w) => {
+  const f = document.createElement('iframe');
+  f.style.cssText = 'border:0;width:' + w + 'px;height:800px;display:block';
+  f.src = 'Main.dc.html';
+  f.onload = () => setTimeout(() => {
+    const d = f.contentDocument, win = f.contentWindow, vw = win.innerWidth;
+    const bad = [];
+    d.querySelectorAll('body *').forEach((el) => {
+      const r = el.getBoundingClientRect();
+      if (!r.width || !r.height) return;
+      // skip elements that are intentionally clipped by an overflow:hidden ancestor narrower than the viewport
+      let p = el.parentElement, clipped = false;
+      while (p && p !== d.body) {
+        const cs = win.getComputedStyle(p);
+        if ((cs.overflowX === 'hidden' || cs.overflow === 'hidden') && p.getBoundingClientRect().right <= vw + 1 && p.getBoundingClientRect().left >= -1) { clipped = true; break; }
+        p = p.parentElement;
+      }
+      if (clipped) return;
+      if (r.right > vw + 1 || r.left < -1) {
+        bad.push(el.tagName.toLowerCase() + (el.className && typeof el.className === 'string' ? '.' + el.className : '') + ' [' + Math.round(r.left) + '..' + Math.round(r.right) + '] "' + (el.textContent || '').trim().slice(0, 40).replace(/\s+/g, ' ') + '"');
+      }
+    });
+    const small = [];
+    d.querySelectorAll('a, button, input').forEach((el) => {
+      const r = el.getBoundingClientRect();
+      if (r.width && r.height && (r.height < 40 || r.width < 40) && win.getComputedStyle(el).opacity !== '0') small.push(el.tagName.toLowerCase() + ' ' + Math.round(r.width) + 'x' + Math.round(r.height) + ' "' + (el.textContent || el.getAttribute('aria-label') || '').trim().slice(0, 30) + '"');
+    });
+    results.push('== ' + w + 'px (innerWidth ' + vw + ', scrollWidth ' + d.documentElement.scrollWidth + ')\nOVERFLOW (' + bad.length + '):\n  ' + bad.slice(0, 25).join('\n  ') + '\nSMALL TAP TARGETS (' + small.length + '):\n  ' + small.slice(0, 15).join('\n  '));
+    if (++done === widths.length) document.getElementById('out').textContent = results.sort().join('\n\n');
+  }, 2500);
+  document.body.appendChild(f);
+});
+</script>
+</body></html>

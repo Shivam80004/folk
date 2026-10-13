@@ -1,0 +1,27 @@
+<!doctype html>
+<!-- Temporary harness: renders Main.dc.html in an iframe, scrolls to a target element and reports state in the title. -->
+<html><head><meta charset="utf-8"></head>
+<body style="margin:0;background:#0E1110">
+<iframe id="f" src="Main.dc.html" style="border:0;width:1440px;height:1000px;display:block"></iframe>
+<script>
+const q = new URLSearchParams(location.search);
+const f = document.getElementById('f');
+f.style.width = (q.get('w') || 1440) + 'px';
+f.style.height = (q.get('h') || 1000) + 'px';
+f.onload = () => setTimeout(() => {
+  const d = f.contentDocument, w = f.contentWindow;
+  const sel = q.get('sel') || 'figure.ba';
+  const el = d.querySelector(sel);
+  if (!el) { document.title = 'NO-ELEMENT'; return; }
+  w.scrollTo(0, w.scrollY + el.getBoundingClientRect().top - (+q.get('off') || 0));
+  const steps = +(q.get('next') || 0);
+  for (let i = 0; i < steps; i++) d.querySelector('[data-glass-carousel-next]')?.click();
+  setTimeout(() => {
+    const gc = d.querySelector('[data-glass-carousel]');
+    document.title = 'mode=' + (gc && gc.getAttribute('data-glass-carousel')) +
+      ' counter=' + (d.querySelector('[data-glass-carousel-counter]')?.textContent || '') +
+      ' caption=' + (d.querySelector('[data-glass-carousel-caption]')?.textContent.trim().replace(/\s+/g, ' ') || '');
+  }, 4000);
+}, 7000);
+</script>
+</body></html>

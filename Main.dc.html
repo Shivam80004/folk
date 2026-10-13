@@ -1,0 +1,604 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#0E1110">
+<title>Sattvic flat sharing in Santacruz East</title>
+<script src="./vendor/react.js"></script>
+<script src="./vendor/react-dom.js"></script>
+<script src="./support.js"></script>
+<!-- WebGL glass lens over the "A look inside" photo row; pulls in three.js from jsDelivr only when it runs -->
+<script type="module" src="./glass-carousel.js"></script>
+<!-- MOTION: GSAP + ScrollTrigger + SplitText + DrawSVG, Lenis smooth scroll. Skipped entirely for reduced-motion visitors. -->
+<script>if(!window.matchMedia('(prefers-reduced-motion: reduce)').matches)document.documentElement.classList.add('has-motion')</script>
+<link rel="stylesheet" href="./motion.css">
+<script src="./vendor/gsap.min.js" defer></script>
+<script src="./vendor/ScrollTrigger.min.js" defer></script>
+<script src="./vendor/SplitText.min.js" defer></script>
+<script src="./vendor/DrawSVGPlugin.min.js" defer></script>
+<script src="./vendor/lenis.min.js" defer></script>
+<script src="./motion.js" defer></script>
+</head>
+<body>
+<!-- PRELOADER, scroll progress bar and cursor. These sit outside the runtime's
+     template so they paint before it renders. motion.js plays the preloader out;
+     motion.css removes it on its own if the scripts never arrive.
+     Careful: never write the template's tag name in full anywhere on this page.
+     The runtime re-reads this file and finds the template with a regex for the
+     first occurrence of that opening tag, so a mention in prose or a comment
+     makes it slice from the wrong place and the page renders empty. -->
+<div class="preloader" aria-hidden="true">
+<div class="preloader__inner">
+<svg class="preloader__mark" width="56" height="56" viewBox="0 0 34 34" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M17 27c-6-3-9-8-9-13 4 0 7 2 9 6 2-4 5-6 9-6 0 5-3 10-9 13Z"></path><path d="M17 20V8"></path><circle cx="17" cy="5" r="1.6" fill="#F2A93B" stroke="none"></circle></svg>
+<div class="preloader__word"><span>Sattvic</span> <span>Flat</span></div>
+</div>
+<div class="preloader__count"><span data-preloader-count>0</span>%</div>
+<div class="preloader__bar"><span></span></div>
+</div>
+<div class="scroll-progress" aria-hidden="true"><span></span></div>
+<div class="cursor" aria-hidden="true"><div class="cursor__ring"><span class="cursor__label"></span></div><div class="cursor__dot"></div></div>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300&amp;display=swap" rel="stylesheet">
+<style>
+:root{
+color-scheme:dark;
+--bg:#0E1110;--surface:#161A18;--surface-2:#1D2220;--band:#131715;--night:#080A09;
+--text:#F2F0EA;--text-muted:#B3B8B4;--text-subtle:#8E9490;
+--line:#262C29;--line-strong:#3A423E;--control-line:#6E7671;
+--accent:#1E5B3C;--accent-line:#2F7A55;--accent-ink:#7CC79E;--accent-tint:#13221A;--accent-tint-line:#25412F;--on-accent:#FFFFFF;
+--amber:#F2A93B;--amber-tint:#231B0E;
+--inverse-bg:#F2F0EA;--inverse-fg:#0E1110;
+}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Poppins,'Helvetica Neue',sans-serif;-webkit-font-smoothing:antialiased}
+a{color:var(--accent-ink)}a:hover{color:var(--text)}
+a:focus-visible,button:focus-visible{outline:3px solid #F2A93B;outline-offset:3px}
+img,video{display:block;max-width:100%}
+.wrap{padding-left:clamp(20px,5vw,72px);padding-right:clamp(20px,5vw,72px)}
+/* Hero scrim: darkens the left (text side), top (nav) and bottom (blends into page) so text stays readable over any video frame */
+.hero-scrim{background:
+linear-gradient(to top,var(--bg) 0%,rgba(14,17,16,0.55) 38%,rgba(14,17,16,0) 70%),
+linear-gradient(to bottom,rgba(14,17,16,0.7) 0%,rgba(14,17,16,0) 22%),
+linear-gradient(90deg,rgba(14,17,16,0.8) 0%,rgba(14,17,16,0.35) 55%,rgba(14,17,16,0.1) 100%)}
+/* Before/after slider: the range input is invisible, so show keyboard focus on the visible handle */
+.ba:has(.ba-range:focus-visible) .ba-handle{outline:3px solid var(--amber);outline-offset:3px}
+
+/* GLASS CAROUSEL: a WebGL lens over a row of flat photos. The authored row below the canvas is the
+fallback: it is what reduced-motion and no-WebGL visitors get, and what screen readers always read.
+Lens shader and scroll model adapted from Yousuf Soomro's liquid glass carousel, MIT licensed. */
+.glass-carousel{position:relative;display:flex;align-items:center;justify-content:center;min-height:min(100svh,920px);background:var(--bg);overflow:clip;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.glass-carousel__canvas{position:absolute;inset:0;display:block;width:100%;height:100%;touch-action:pan-y;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+[data-glass-carousel-wheel="all"] .glass-carousel__canvas{touch-action:none}
+[data-glass-carousel-pointer="grab"] .glass-carousel__canvas{cursor:grab}
+[data-glass-carousel-pointer="grabbing"] .glass-carousel__canvas{cursor:grabbing}
+.glass-carousel__head{position:absolute;top:clamp(40px,7vh,84px);left:0;right:0;z-index:2;text-align:center;pointer-events:none}
+.glass-carousel__list{position:absolute;inset:0;display:flex;align-items:center;justify-content:flex-start;gap:20px;padding-left:2em;padding-right:2em;overflow-x:auto;scroll-snap-type:x mandatory}
+.glass-carousel__item{flex:none;height:35%;scroll-snap-align:center}
+.glass-carousel__item-img{display:block;height:100%;object-fit:cover;border-radius:4px}
+.glass-carousel__item-p{margin:0;font-size:15px;line-height:1.3;font-weight:400}
+.glass-carousel__item-p.is--faded{opacity:.6;font-weight:300}
+/* Once the canvas takes over, the row stays for screen readers only and its captions move to .glass-carousel__caption */
+[data-glass-carousel="canvas"] .glass-carousel__list{width:1px;height:1px;gap:0;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+[data-glass-carousel="canvas"] [data-glass-carousel-item] [data-glass-carousel-content]{visibility:hidden}
+.glass-carousel__caption,.glass-carousel__footbar{display:none}
+[data-glass-carousel="canvas"] .glass-carousel__caption{display:block;position:absolute;left:0;right:0;bottom:26%;z-index:2;padding:0 1em;text-align:center;pointer-events:none}
+[data-glass-carousel="canvas"] .glass-carousel__footbar{display:flex;position:absolute;left:0;right:0;bottom:clamp(28px,6vh,64px);z-index:3;align-items:center;justify-content:center;gap:14px}
+.glass-carousel__counter{min-width:5.5em;padding:11px 16px;border-radius:999px;background:rgba(242,240,234,0.07);border:1px solid var(--line-strong);font-size:14px;font-variant-numeric:tabular-nums;text-align:center;color:var(--text-muted)}
+.glass-carousel__step{flex:none;width:44px;height:44px;display:flex;align-items:center;justify-content:center;padding:0;border-radius:50%;border:1.5px solid var(--control-line);background:rgba(14,17,16,0.55);color:var(--text);cursor:pointer}
+.glass-carousel__step:hover{background:var(--surface-2)}
+@media (max-width: 760px){
+.ba{aspect-ratio:4 / 5!important;border-radius:24px!important}
+.navlink{display:none!important}
+.pillar{padding:28px 0!important;border-right:0!important;border-bottom:1px solid var(--line)}
+.cmpc{padding:18px 14px!important;font-size:15px!important}
+.foot{padding-bottom:72px}
+.navcta{padding:10px 16px!important;font-size:14px}
+.glass-carousel{min-height:min(100svh,760px)!important}
+[data-glass-carousel="canvas"] .glass-carousel__caption{bottom:22%!important}
+/* On phones the text spans the full width, so darken evenly instead of left-to-right */
+.hero-scrim{background:linear-gradient(to top,var(--bg) 0%,rgba(14,17,16,0.7) 45%,rgba(14,17,16,0.55) 100%)}
+}
+@media (max-width: 400px){.brandsub{display:none}}
+@media (prefers-reduced-motion: reduce){video{display:none}.vidctl{display:none!important}}
+</style>
+</helmet>
+
+<!-- overflow-x is `clip`, not `hidden`, on purpose. `hidden` on one axis forces
+     the other axis to `auto`, which makes this div a scroll container and stops
+     `position: sticky` inside it from ever sticking (see .day__sticky). `clip`
+     trims the same overflow without creating one. -->
+<div style="font-family: Poppins, 'Helvetica Neue', sans-serif; color: var(--text); background: var(--bg); overflow-x: clip">
+
+<!-- HERO (full-bleed video, nav + content on top) -->
+<section id="top" class="hero" style="position: relative; overflow: hidden; min-height: min(100svh, 920px); display: flex; flex-direction: column; background: var(--bg)">
+<div aria-hidden="true" data-m="hero-media" style="position: absolute; inset: 0; opacity: 0.55; background: var(--bg) url('./assets/829e4c94b9a29258d5f2e0397e4c90da.jpg') center / cover no-repeat">
+<video ref="{{vidRef}}" src="./assets/3387b0bbb3b474503f677ab400caabae.mp4" poster="./assets/829e4c94b9a29258d5f2e0397e4c90da.jpg" autoPlay="{{ vidAutoplay }}" muted="{{ true }}" loop="{{ true }}" playsInline="{{ true }}" style="width: 100%; height: 100%; object-fit: cover"></video>
+</div>
+<div class="hero-scrim" aria-hidden="true" style="position: absolute; inset: 0"></div>
+
+<!-- NAV -->
+<header class="wrap" data-m="nav" style="position: relative; z-index: 2; box-sizing: border-box; width: 100%; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; padding-top: 22px; padding-bottom: 22px; max-width: 1360px; margin: 0 auto">
+<a href="#top" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--text)">
+<svg width="34" height="34" viewBox="0 0 34 34" fill="none" stroke="currentColor" style="color: var(--accent-ink)" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M17 27c-6-3-9-8-9-13 4 0 7 2 9 6 2-4 5-6 9-6 0 5-3 10-9 13Z"></path><path d="M17 20V8"></path><circle cx="17" cy="5" r="1.6" fill="#F2A93B" stroke="none"></circle></svg>
+<span style="font-weight: 600; font-size: 17px; letter-spacing: -0.01em">Sattvic Flat <span class="brandsub" style="font-weight: 300">Santacruz</span></span>
+</a>
+<nav style="display: flex; flex-wrap: wrap; align-items: center; gap: 28px; font-size: 15px">
+<a href="#different" class="navlink" style="color: var(--text); text-decoration: none">Why it's different</a>
+<a href="#home" class="navlink" style="color: var(--text); text-decoration: none">The home</a>
+<a href="#price" class="navlink" style="color: var(--text); text-decoration: none">Price</a>
+<a href="#trial" class="navcta" style="background: var(--inverse-bg); color: var(--inverse-fg); text-decoration: none; padding: 12px 22px; border-radius: 999px; font-weight: 500; min-height: 20px; white-space: nowrap">Try 7 days free</a>
+</nav>
+</header>
+
+<div class="wrap" data-m="hero-content" style="position: relative; z-index: 1; box-sizing: border-box; width: 100%; max-width: 1360px; margin: 0 auto; flex: 1; display: flex; flex-direction: column; justify-content: flex-end; padding-top: clamp(56px,10vh,120px); padding-bottom: clamp(40px,6.5vw,96px)">
+<div style="max-width: 760px">
+
+<h1 data-m="hero-title" style="margin: 0; font-size: clamp(38px,5.2vw,76px); line-height: 1.04; letter-spacing: -0.04em; font-weight: 600; max-width: 13em">Come home to a house that feels good.</h1>
+<p data-m="hero-lede" style="margin: 26px 0 0; font-size: clamp(16px,1.4vw,19px); line-height: 1.65; color: var(--text-muted); max-width: 34em; font-weight: 300">Pure vegetarian sattvic meals three times a day, guided yoga and meditation, and flatmates who actually sit down and eat together. Two minutes from Santacruz station, a short hop to BKC.</p>
+<div data-m="hero-ctas" style="margin-top: 36px; display: flex; flex-wrap: wrap; gap: 14px">
+<a href="#trial" style="background: var(--accent); color: var(--on-accent); text-decoration: none; padding: 18px 30px; border-radius: 999px; font-weight: 500; font-size: 16px">Stay 7 days free</a>
+<a href="{{waGeneral}}" style="border: 1.5px solid var(--text); color: var(--text); background: rgba(14,17,16,0.35); backdrop-filter: blur(6px); text-decoration: none; padding: 16.5px 28px; border-radius: 999px; font-weight: 500; font-size: 16px; display: inline-flex; gap: 10px; align-items: center">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 20.5l1.3-4.2A8.5 8.5 0 1 1 8 19.4l-4.5 1.1Z"></path><path d="M9 9.5c.3 1.8 2.6 4.3 5.3 5 .6.1 1.4-.6 1.6-1.2l-1.6-1-1 .8c-1-.4-2-1.4-2.4-2.4l.8-1-1-1.6c-.6.2-1.3 1-1.2 1.6Z"></path></svg>
+WhatsApp 92570 23031</a>
+</div>
+</div>
+
+<div data-m="hero-stats" style="margin-top: clamp(40px,6vh,72px); padding-top: 24px; border-top: 1px solid rgba(242,240,234,0.16); display: flex; flex-wrap: wrap; gap: 24px 40px; align-items: flex-end; justify-content: space-between">
+<div style="display: flex; flex-wrap: wrap; gap: 20px 40px; font-size: 14px; color: var(--text-muted)">
+<div><div data-count="" style="font-size: 24px; font-weight: 600; color: var(--text); letter-spacing: -0.02em">₹28,000</div>a month, all inclusive</div>
+<div><div data-count="" style="font-size: 24px; font-weight: 600; color: var(--text); letter-spacing: -0.02em">2 min</div>walk to Santacruz station</div>
+<div><div data-count="" style="font-size: 24px; font-weight: 600; color: var(--text); letter-spacing: -0.02em">₹0</div>brokerage</div>
+</div>
+<div style="display: flex; align-items: center; gap: 12px">
+<p style="margin: 0; font-size: 13px; line-height: 1.4; color: var(--text-muted)"><span style="color: var(--amber); font-weight: 600">Real footage.</span> This is the actual flat, not a render.</p>
+<button class="vidctl" onClick="{{toggleVideo}}" aria-label="{{vidLabel}}" style="flex: none; width: 44px; height: 44px; border-radius: 50%; border: 1.5px solid var(--control-line); background: rgba(14,17,16,0.5); color: var(--text); cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0">
+<sc-if value="{{vidPaused}}" hint-placeholder-val="{{ false }}">
+<svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor" aria-hidden="true"><path d="M3 1.5v11l9.5-5.5Z"></path></svg>
+</sc-if>
+<sc-if value="{{vidPlaying}}" hint-placeholder-val="{{ true }}">
+<svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor" aria-hidden="true"><rect x="2.5" y="1.5" width="3" height="11" rx="1"></rect><rect x="8.5" y="1.5" width="3" height="11" rx="1"></rect></svg>
+</sc-if>
+</button>
+</div>
+</div>
+</div>
+</section>
+
+<!-- TRIAL BAND -->
+<section style="background: var(--band); color: var(--text); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line)">
+<div class="wrap" style="max-width: 1360px; margin: 0 auto; padding-top: 72px; padding-bottom: 72px; display: flex; flex-wrap: wrap; gap: 40px; align-items: center; justify-content: space-between">
+<h2 data-m="scrub-words" style="margin: 0; font-size: clamp(32px,4.4vw,60px); line-height: 1.05; letter-spacing: -0.04em; font-weight: 600; flex: 1 1 520px; max-width: 580px">Don't take our word for it. Live here for a week.</h2>
+<div data-m="fade-up" style="flex: 1 1 360px; max-width: 480px">
+<p style="margin: 0; font-size: 18px; line-height: 1.7; color: var(--text-muted); font-weight: 300">Photos can't show you how a house feels at 7 in the morning or over dinner. So we let interested people stay for 7 days free: eat the food, join the yoga, meet the flatmates. Then decide.</p>
+<a href="#trial" style="display: inline-block; margin-top: 28px; background: var(--amber); color: var(--inverse-fg); text-decoration: none; padding: 16px 28px; border-radius: 999px; font-weight: 600">Plan my free week</a>
+</div>
+</div>
+</section>
+
+<!-- GLASS CAROUSEL: deliberately free of {{ }} bindings, so a re-render never swaps out the canvas
+     and kills its WebGL context. The photo list is the authored fallback; see initGlassCarousels(). -->
+<section data-glass-carousel="" class="glass-carousel" aria-labelledby="tour-heading">
+
+<div class="wrap glass-carousel__head" data-m="fade-up">
+<h2 id="tour-heading" style="margin: 0; font-size: clamp(30px,3.6vw,52px); line-height: 1.08; letter-spacing: -0.04em; font-weight: 600">A look inside.</h2>
+<p style="margin: 14px auto 0; max-width: 30em; font-size: 16px; line-height: 1.6; color: var(--text-muted); font-weight: 300">Drag sideways to move through the rooms.</p>
+</div>
+
+<canvas aria-hidden="true" data-glass-carousel-canvas="" class="glass-carousel__canvas"></canvas>
+
+<div class="glass-carousel__collection">
+<div data-glass-carousel-list="" class="glass-carousel__list">
+
+<div data-glass-carousel-item="" class="glass-carousel__item">
+<img src="./assets/829e4c94b9a29258d5f2e0397e4c90da.jpg" loading="eager" data-glass-carousel-image="" class="glass-carousel__item-img" alt="Large living room with sofas, red feature wall and two windows">
+<div data-glass-carousel-content="" class="glass-carousel__item-content">
+<p class="glass-carousel__item-p">Living room</p>
+<p class="glass-carousel__item-p is--faded">Big enough for the whole house</p>
+</div>
+</div>
+
+<div data-glass-carousel-item="" class="glass-carousel__item">
+<img src="./assets/8d9e400942faef25bb36c0a19c88b81c.jpg" loading="eager" data-glass-carousel-image="" class="glass-carousel__item-img" alt="Bright bedroom with peach accent wall, double bed and side tables">
+<div data-glass-carousel-content="" class="glass-carousel__item-content">
+<p class="glass-carousel__item-p">Bedroom</p>
+<p class="glass-carousel__item-p is--faded">AC and a textured accent wall</p>
+</div>
+</div>
+
+<div data-glass-carousel-item="" class="glass-carousel__item">
+<img src="./assets/80e9af1488bacdf1c034b40a0579e445.jpg" loading="eager" data-glass-carousel-image="" class="glass-carousel__item-img" alt="Bathroom with glass shower partition, wall-hung toilet and basin">
+<div data-glass-carousel-content="" class="glass-carousel__item-content">
+<p class="glass-carousel__item-p">Bathroom</p>
+<p class="glass-carousel__item-p is--faded">Glass showers, cleaned daily</p>
+</div>
+</div>
+
+<div data-glass-carousel-item="" class="glass-carousel__item">
+<img src="./assets/45e21a063c978e278603d864e3ca2567.jpg" loading="eager" data-glass-carousel-image="" class="glass-carousel__item-img" alt="Bedroom with green tufted headboard, marble floor and arched window">
+<div data-glass-carousel-content="" class="glass-carousel__item-content">
+<p class="glass-carousel__item-p">Arched window room</p>
+<p class="glass-carousel__item-p is--faded">Morning light on marble</p>
+</div>
+</div>
+
+<div data-glass-carousel-item="" class="glass-carousel__item">
+<img src="./assets/a0c2efaabe5fca6dbce392f0a189b72d.jpg" loading="eager" data-glass-carousel-image="" class="glass-carousel__item-img" alt="Bedroom with striped bedding and patterned curtains">
+<div data-glass-carousel-content="" class="glass-carousel__item-content">
+<p class="glass-carousel__item-p">Sharing rooms</p>
+<p class="glass-carousel__item-p is--faded">Set up for two or three</p>
+</div>
+</div>
+
+<div data-glass-carousel-item="" class="glass-carousel__item">
+<img src="./assets/87fb7bf7edd9cfb14ca3782879179669.jpg" loading="eager" data-glass-carousel-image="" class="glass-carousel__item-img" alt="Kitchen with steel refrigerator, microwave, gas stove and cabinets">
+<div data-glass-carousel-content="" class="glass-carousel__item-content">
+<p class="glass-carousel__item-p">Kitchen</p>
+<p class="glass-carousel__item-p is--faded">Where the three meals happen</p>
+</div>
+</div>
+
+<div data-glass-carousel-item="" class="glass-carousel__item">
+<img src="./assets/e7167d75681be0c5416ebc69143341f6.jpg" loading="eager" data-glass-carousel-image="" class="glass-carousel__item-img" alt="Glass meditation wall with rows of golden seated figures, by the entrance">
+<div data-glass-carousel-content="" class="glass-carousel__item-content">
+<p class="glass-carousel__item-p">Meditation wall</p>
+<p class="glass-carousel__item-p is--faded">By the entrance</p>
+</div>
+</div>
+
+</div>
+</div>
+
+<div aria-live="polite" data-glass-carousel-caption="" class="glass-carousel__caption"></div>
+
+<div class="glass-carousel__footbar">
+<button type="button" data-glass-carousel-prev="" class="glass-carousel__step" aria-label="Previous room">
+<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 3L5 8l5 5"></path></svg>
+</button>
+<div data-glass-carousel-counter="" class="glass-carousel__counter">01/07</div>
+<button type="button" data-glass-carousel-next="" class="glass-carousel__step" aria-label="Next room">
+<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3l5 5-5 5"></path></svg>
+</button>
+</div>
+
+</section>
+
+<!-- A DAY HERE -->
+<!-- On wide screens with motion, motion.js adds html.is-hscroll: .day__sticky sticks and the card row scrubs sideways. Otherwise this is the plain grid. -->
+<section class="day" data-m="day">
+<div class="day__sticky">
+<div class="wrap day__inner" style="max-width: 1360px; margin: 0 auto; padding-top: 120px; padding-bottom: 20px">
+<div class="day__head" style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-end; justify-content: space-between; margin-bottom: 48px">
+<h2 data-m="split" style="margin: 0; font-size: clamp(32px,4vw,56px); line-height: 1.08; letter-spacing: -0.04em; font-weight: 600; max-width: 520px">Picture a regular weekday here.</h2>
+<p data-m="fade-up" style="margin: 0; max-width: 28em; font-size: 17px; line-height: 1.7; color: var(--text-muted); font-weight: 300">No cooking, no ordering, no chasing the maid. You just live, work and come home to people.</p>
+</div>
+<ol class="day__track" data-m="day-track" style="list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 16px">
+<li style="border-radius: 28px; overflow: hidden; background: var(--amber-tint)">
+<svg viewBox="0 0 240 150" width="100%" style="display: block; color: var(--text)" aria-hidden="true"><rect width="240" height="150" style="fill: var(--amber-tint)"></rect><circle cx="120" cy="112" r="38" fill="#F2A93B"></circle><g stroke="#F2A93B" stroke-width="3" stroke-linecap="round"><path d="M120 52v-14M78 70l-10-10M162 70l10-10M60 104H44M180 104h16"></path></g><rect y="112" width="240" height="38" style="fill: var(--amber-tint)"></rect><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="120" cy="74" r="7"></circle><path d="M120 82v14M98 92c8 0 14 3 22 6 8-3 14-6 22-6M100 118c6-10 12-14 20-14s14 4 20 14M80 118h80"></path></g></svg>
+<div style="padding: 20px 24px 26px"><div style="font-size: 13px; font-weight: 600; color: var(--amber)">Morning</div><h3 style="margin: 6px 0 6px; font-size: 19px; font-weight: 600">Yoga, then quiet</h3><p style="margin: 0; font-size: 14.5px; line-height: 1.6; color: var(--text-muted); font-weight: 300">Start with guided yoga and a few minutes of meditation instead of your phone.</p></div>
+</li>
+<li style="border-radius: 28px; overflow: hidden; background: var(--accent-tint)">
+<svg viewBox="0 0 240 150" width="100%" style="display: block; color: var(--text)" aria-hidden="true"><rect width="240" height="150" style="fill: var(--accent-tint)"></rect><circle cx="120" cy="84" r="52" style="fill: var(--surface)" stroke="currentColor" stroke-width="2.4"></circle><circle cx="120" cy="84" r="38" fill="none" stroke="currentColor" stroke-width="1.6"></circle><circle cx="102" cy="74" r="10" fill="#F2A93B"></circle><circle cx="136" cy="70" r="11" style="fill: var(--accent-line)"></circle><circle cx="128" cy="100" r="10" fill="#E9C46A"></circle><circle cx="105" cy="99" r="7" fill="#C8DCCF"></circle><g stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"><path d="M110 26c0-6 5-6 5-12M122 26c0-6 5-6 5-12M134 26c0-6 5-6 5-12"></path></g></svg>
+<div style="padding: 20px 24px 26px"><div style="font-size: 13px; font-weight: 600; color: var(--accent-ink)">Before work</div><h3 style="margin: 6px 0 6px; font-size: 19px; font-weight: 600">Breakfast is ready</h3><p style="margin: 0; font-size: 14.5px; line-height: 1.6; color: var(--text-muted); font-weight: 300">A warm sattvic breakfast on the table. Lunch is taken care of too.</p></div>
+</li>
+<li style="border-radius: 28px; overflow: hidden; background: var(--surface-2)">
+<svg viewBox="0 0 240 150" width="100%" style="display: block; color: var(--text)" aria-hidden="true"><rect width="240" height="150" style="fill: var(--surface-2)"></rect><path d="M20 120h200" stroke="currentColor" stroke-width="2.4"></path><path d="M20 128h200" stroke="currentColor" stroke-width="1.2" stroke-dasharray="6 6"></path><rect x="58" y="50" width="124" height="64" rx="14" style="fill: var(--surface)" stroke="currentColor" stroke-width="2.4"></rect><rect x="72" y="62" width="28" height="22" rx="4" fill="#C8DCCF" stroke="currentColor" stroke-width="1.6"></rect><rect x="106" y="62" width="28" height="22" rx="4" fill="#C8DCCF" stroke="currentColor" stroke-width="1.6"></rect><rect x="140" y="62" width="28" height="22" rx="4" fill="#C8DCCF" stroke="currentColor" stroke-width="1.6"></rect><path d="M58 96h124" stroke="#F2A93B" stroke-width="5"></path><circle cx="84" cy="116" r="5" fill="currentColor"></circle><circle cx="156" cy="116" r="5" fill="currentColor"></circle><text x="120" y="34" text-anchor="middle" font-family="Poppins, sans-serif" font-size="15" font-weight="600" fill="currentColor">2 min to the station</text></svg>
+<div style="padding: 20px 24px 26px"><div style="font-size: 13px; font-weight: 600; color: var(--text-muted)">Commute</div><h3 style="margin: 6px 0 6px; font-size: 19px; font-weight: 600">Out the door, on the train</h3><p style="margin: 0; font-size: 14.5px; line-height: 1.6; color: var(--text-muted); font-weight: 300">Santacruz station is a two-minute walk. BKC is close by.</p></div>
+</li>
+<li style="border-radius: 28px; overflow: hidden; background: var(--accent); color: var(--on-accent)">
+<svg viewBox="0 0 240 150" width="100%" style="display: block; color: var(--text)" aria-hidden="true"><rect width="240" height="150" fill="#1E5B3C"></rect><rect x="40" y="92" width="160" height="10" rx="5" fill="#FFFFFF"></rect><g fill="#FFFFFF"><circle cx="72" cy="62" r="11"></circle><circle cx="120" cy="56" r="11"></circle><circle cx="168" cy="62" r="11"></circle></g><g fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round"><path d="M58 92c0-10 6-16 14-16s14 6 14 16M106 92c0-12 6-20 14-20s14 8 14 20M154 92c0-10 6-16 14-16s14 6 14 16"></path></g><g fill="#F2A93B"><ellipse cx="92" cy="88" rx="10" ry="3"></ellipse><ellipse cx="148" cy="88" rx="10" ry="3"></ellipse></g><circle cx="210" cy="28" r="4" fill="#F2A93B"></circle></svg>
+<div style="padding: 20px 24px 26px"><div style="font-size: 13px; font-weight: 600; color: var(--amber)">Evening</div><h3 style="margin: 6px 0 6px; font-size: 19px; font-weight: 600">Dinner together</h3><p style="margin: 0; font-size: 14.5px; line-height: 1.6; color: #E4EEE7; font-weight: 300">Come back to a hot meal and flatmates who ask how your day went.</p></div>
+</li>
+<li style="border-radius: 28px; overflow: hidden; background: var(--night); color: var(--text); border: 1px solid var(--line)">
+<svg viewBox="0 0 240 150" width="100%" style="display: block; color: var(--text)" aria-hidden="true"><rect width="240" height="150" style="fill: var(--night)"></rect><path d="M140 40a34 34 0 1 0 34 46 28 28 0 0 1-34-46Z" fill="#F2A93B"></path><g fill="#FFFFFF"><circle cx="60" cy="40" r="2"></circle><circle cx="90" cy="70" r="1.5"></circle><circle cx="200" cy="34" r="2"></circle><circle cx="44" cy="98" r="1.5"></circle><circle cx="196" cy="110" r="1.5"></circle></g><path d="M30 128h180" stroke="#FFFFFF" stroke-width="1.2" opacity="0.4"></path></svg>
+<div style="padding: 20px 24px 26px"><div style="font-size: 13px; font-weight: 600; color: var(--amber)">Night</div><h3 style="margin: 6px 0 6px; font-size: 19px; font-weight: 600">A calm house, good sleep</h3><p style="margin: 0; font-size: 14.5px; line-height: 1.6; color: var(--text-muted); font-weight: 300">A peaceful home with AC in your room. Wake up lighter tomorrow.</p></div>
+</li>
+</ol>
+<div class="day__progress" aria-hidden="true"><span class="day__progress-fill"></span></div>
+</div>
+</div>
+</section>
+
+<!-- DIFFERENT -->
+<section id="different" class="wrap" style="max-width: 1360px; margin: 0 auto; padding-top: 120px; padding-bottom: 40px">
+<div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-end; justify-content: space-between; margin-bottom: 56px">
+<h2 data-m="split" style="margin: 0; font-size: clamp(32px,4vw,56px); line-height: 1.08; letter-spacing: -0.04em; font-weight: 600; max-width: 560px">Most bachelor flats are a place to sleep. This one is a place to live.</h2>
+<p data-m="fade-up" style="margin: 0; max-width: 30em; font-size: 17px; line-height: 1.7; color: var(--text-muted); font-weight: 300">Here's what changes when the food, the mornings and the people are taken care of.</p>
+</div>
+
+<!-- BEFORE / AFTER SLIDER: left = stock photo of a typical shared room, right = real photo of this flat. A transparent range input on top handles mouse, touch and keyboard. -->
+<div data-m="fade-up" role="group" aria-label="Choose a room to compare" style="display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 16px">
+<sc-for list="{{baRooms}}" as="br" hint-placeholder-count="3">
+<button onClick="{{br.pick}}" aria-pressed="{{br.pressed}}" style="font-family: inherit; font-size: 15px; font-weight: 500; padding: 11px 20px; min-height: 44px; border-radius: 999px; cursor: pointer; border: 1.5px solid var(--control-line); background: {{br.bg}}; color: {{br.fg}}">{{br.label}}</button>
+</sc-for>
+</div>
+<figure class="ba" data-m="ba" style="position: relative; margin: 0 0 20px; aspect-ratio: 16 / 9; max-height: 78vh; width: 100%; border-radius: 32px; overflow: hidden; background: var(--surface); border: 1px solid var(--line-strong); user-select: none">
+<img src="{{baReal}}" alt="{{baRealAlt}}" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover">
+<div style="position: absolute; inset: 0; clip-path: inset(0 {{baClip}} 0 0); background: var(--surface-2)">
+<!-- saturate() only pulls the stock photo towards the page palette; the scene itself is untouched -->
+<img src="{{baMock}}" alt="{{baMockAlt}}" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; filter: saturate(0.82)">
+</div>
+<div aria-hidden="true" style="position: absolute; top: 0; bottom: 0; left: {{baPos}}; width: 2px; margin-left: -1px; background: var(--text); pointer-events: none"></div>
+<div class="ba-handle" aria-hidden="true" style="position: absolute; top: 50%; left: {{baPos}}; width: 56px; height: 56px; margin: -28px 0 0 -28px; border-radius: 50%; background: var(--inverse-bg); color: var(--inverse-fg); display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 30px -8px rgba(0,0,0,0.6); pointer-events: none">
+<svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6l-5 5 5 5M14 6l5 5-5 5"></path></svg>
+</div>
+<span aria-hidden="true" style="position: absolute; top: 20px; left: 20px; background: rgba(14,17,16,0.78); color: var(--text-muted); backdrop-filter: blur(6px); padding: 8px 14px; border-radius: 999px; font-size: 14px; font-weight: 500; pointer-events: none">Typical PG <span style="opacity: 0.7; font-weight: 400">· stock photo</span></span>
+<span aria-hidden="true" style="position: absolute; top: 20px; right: 20px; background: var(--accent); color: var(--on-accent); padding: 8px 14px; border-radius: 999px; font-size: 14px; font-weight: 600; pointer-events: none">Sattvic Flat <span style="opacity: 0.8; font-weight: 400">· real photo</span></span>
+<input class="ba-range" type="range" min="0" max="100" step="1" value="{{baValue}}" onChange="{{baSet}}" aria-label="Compare a typical bachelor flat with this flat. Lower values show more of this flat." aria-valuetext="{{baValueText}}" style="position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: ew-resize; touch-action: pan-y">
+<figcaption style="position: absolute; left: 0; right: 0; bottom: 0; padding: 40px 24px 18px; background: linear-gradient(to top, rgba(14,17,16,0.85), rgba(14,17,16,0)); font-size: 14px; color: var(--text-muted); text-align: center; pointer-events: none">Drag to compare</figcaption>
+</figure>
+<p style="margin: -8px 0 20px; font-size: 12px; line-height: 1.5; color: var(--text-subtle); font-weight: 300">{{baCredit}}. Right: our flat in Santacruz East.</p>
+
+<!-- COMPARISON TABLE (commented out for now; the data still lives in `compare` in the script below)
+<div style="border-radius: 32px; overflow: hidden; border: 1.5px solid var(--line-strong)">
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); background: var(--surface)">
+<div class="cmpc" style="padding: 22px 28px; font-size: 14px; font-weight: 500; color: var(--text-subtle); border-bottom: 1.5px solid var(--line-strong)">The usual bachelor flat</div>
+<div class="cmpc" style="padding: 22px 28px; font-size: 14px; font-weight: 600; color: var(--on-accent); background: var(--accent); border-bottom: 1.5px solid var(--line-strong)">Here</div>
+</div>
+<sc-for list="{{compare}}" as="row" hint-placeholder-count="6">
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border-bottom: 1px solid var(--line)">
+<div class="cmpc" style="padding: 26px 28px; font-size: clamp(15px,1.4vw,18px); line-height: 1.5; color: var(--text-subtle); text-decoration: line-through; text-decoration-color: var(--control-line); font-weight: 300">{{row.old}}</div>
+<div class="cmpc" style="padding: 26px 28px; font-size: clamp(15px,1.4vw,18px); line-height: 1.5; color: var(--text); background: var(--accent-tint); font-weight: 500">{{row.now}}</div>
+</div>
+</sc-for>
+</div>
+END COMPARISON TABLE -->
+</section>
+
+<!-- FOUR PILLARS -->
+<section class="wrap" style="max-width: 1360px; margin: 0 auto; padding-top: 96px; padding-bottom: 40px">
+<div data-m="pillars" style="position: relative; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 0; border-top: 1.5px solid var(--line-strong)">
+<div class="pillar" style="padding: 36px 28px 36px 0; border-right: 1px solid var(--line)">
+<svg width="56" height="56" viewBox="0 0 56 56" fill="none" stroke="currentColor" style="color: var(--accent-ink)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="28" cy="30" r="20"></circle><circle cx="28" cy="30" r="13"></circle><circle cx="22" cy="27" r="3"></circle><circle cx="33" cy="25" r="3.5"></circle><circle cx="30" cy="35" r="3"></circle><path d="M42 8v14M46 8v14M44 22v26"></path></svg>
+<h3 style="margin: 22px 0 10px; font-size: 21px; font-weight: 600; letter-spacing: -0.02em">Sattvic meals, three a day</h3>
+<p style="margin: 0; font-size: 15px; line-height: 1.7; color: var(--text-muted); font-weight: 300">Pure vegetarian, home-style and light on the stomach. Breakfast before work, lunch, and a proper dinner when you get back.</p>
+</div>
+<div class="pillar" style="padding: 36px 28px; border-right: 1px solid var(--line)">
+<svg width="56" height="56" viewBox="0 0 56 56" fill="none" stroke="currentColor" style="color: var(--accent-ink)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="28" cy="11" r="5"></circle><path d="M28 17v13M14 26c5 0 9 2 14 4 5-2 9-4 14-4M18 46c3-7 7-10 10-10s7 3 10 10M10 46h36"></path></svg>
+<h3 style="margin: 22px 0 10px; font-size: 21px; font-weight: 600; letter-spacing: -0.02em">Yoga and meditation</h3>
+<p style="margin: 0; font-size: 15px; line-height: 1.7; color: var(--text-muted); font-weight: 300">Guidance at home, so a calm morning stops being something you mean to start next Monday.</p>
+</div>
+<div class="pillar" style="padding: 36px 28px; border-right: 1px solid var(--line)">
+<svg width="56" height="56" viewBox="0 0 56 56" fill="none" stroke="currentColor" style="color: var(--accent-ink)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="17" cy="18" r="6"></circle><circle cx="39" cy="18" r="6"></circle><circle cx="28" cy="24" r="6"></circle><path d="M6 44c1-7 5-11 11-11M50 44c-1-7-5-11-11-11M16 48c1-8 6-12 12-12s11 4 12 12"></path></svg>
+<h3 style="margin: 22px 0 10px; font-size: 21px; font-weight: 600; letter-spacing: -0.02em">Flatmates worth knowing</h3>
+<p style="margin: 0; font-size: 15px; line-height: 1.7; color: var(--text-muted); font-weight: 300">Working professionals aged 22 to 35 from different backgrounds. Bachelors only, so the house stays easygoing.</p>
+</div>
+<div class="pillar" style="padding: 36px 0 36px 28px">
+<svg width="56" height="56" viewBox="0 0 56 56" fill="none" stroke="currentColor" style="color: var(--accent-ink)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 48V26a20 20 0 0 1 40 0v22Z"></path><path d="M18 48V30a10 10 0 0 1 20 0v18"></path><path d="M4 48h48"></path></svg>
+<h3 style="margin: 22px 0 10px; font-size: 21px; font-weight: 600; letter-spacing: -0.02em">Room to breathe</h3>
+<p style="margin: 0; font-size: 15px; line-height: 1.7; color: var(--text-muted); font-weight: 300">Spacious bedrooms with AC, a large living room, a fridge, microwave and furnished everything.</p>
+</div>
+</div>
+</section>
+
+<!-- THE HOME / GALLERY -->
+<section id="home" class="wrap" style="max-width: 1360px; margin: 0 auto; padding-top: 120px; padding-bottom: 40px">
+<h2 data-m="split" style="margin: 0 0 16px; font-size: clamp(32px,4vw,56px); line-height: 1.08; letter-spacing: -0.04em; font-weight: 600">Walk through the flat.</h2>
+<p data-m="fade-up" style="margin: 0 0 48px; max-width: 34em; font-size: 17px; line-height: 1.7; color: var(--text-muted); font-weight: 300">Every photo here is the real place. Tap any room to see it larger.</p>
+
+<div data-m="gallery" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px">
+<sc-for list="{{gallery}}" as="g" hint-placeholder-count="6">
+<button onClick="{{g.open}}" aria-label="{{g.label}}" style="all: unset; cursor: pointer; display: block; border-radius: {{g.radius}}; overflow: hidden; position: relative; aspect-ratio: {{g.ratio}}; background: var(--accent-tint)">
+<img src="{{g.src}}" alt="{{g.alt}}" style="width: 100%; height: 100%; object-fit: cover">
+<span style="position: absolute; left: 14px; bottom: 14px; right: 14px; background: rgba(14,17,16,0.82); color: var(--text); backdrop-filter: blur(8px); padding: 10px 14px; border-radius: 14px; font-size: 14px; font-weight: 500; line-height: 1.35">{{g.caption}}</span>
+</button>
+</sc-for>
+</div>
+
+<div style="margin-top: 20px; display: flex; flex-wrap: wrap; gap: 20px; align-items: stretch">
+<div data-m="parallax" style="flex: 1 1 420px; min-width: 0; border-radius: 28px; overflow: hidden; aspect-ratio: 16 / 9; background: var(--accent-tint)">
+<img src="./assets/e7167d75681be0c5416ebc69143341f6.jpg" alt="Glass meditation wall with rows of golden seated figures, by the entrance" style="width: 100%; height: 100%; object-fit: cover">
+</div>
+<div data-m="quote" style="flex: 1 1 320px; min-width: 0; border-radius: 28px; background: var(--accent); color: var(--on-accent); padding: 40px; display: flex; flex-direction: column; justify-content: space-between; gap: 24px">
+<svg width="44" height="44" viewBox="0 0 44 44" fill="none" stroke="#F2A93B" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M22 36c-8-4-12-10-12-17 5 0 9 3 12 8 3-5 7-8 12-8 0 7-4 13-12 17Z"></path><path d="M22 27c-3-5-3-11 0-17 3 6 3 12 0 17Z"></path></svg>
+<p style="margin: 0; font-size: clamp(20px,2vw,26px); line-height: 1.4; font-weight: 300; letter-spacing: -0.01em">The first thing you see when you walk in is the meditation wall. That sets the tone for the whole house.</p>
+</div>
+</div>
+</section>
+
+<!-- HOW TRIAL WORKS -->
+<section class="wrap" style="max-width: 1360px; margin: 0 auto; padding-top: 120px; padding-bottom: 40px">
+<h2 data-m="split" style="margin: 0 0 48px; font-size: clamp(32px,4vw,56px); line-height: 1.08; letter-spacing: -0.04em; font-weight: 600; max-width: 640px">How your free week works</h2>
+<ol data-m="steps" style="list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 20px; perspective: 1200px">
+<li style="border: 1.5px solid var(--line-strong); border-radius: 24px; padding: 28px"><div style="width: 44px; height: 44px; border-radius: 50%; background: var(--inverse-bg); color: var(--inverse-fg); display: flex; align-items: center; justify-content: center; font-weight: 600">1</div><h3 style="margin: 22px 0 8px; font-size: 19px; font-weight: 600">Message us</h3><p style="margin: 0; font-size: 15px; line-height: 1.65; color: var(--text-muted); font-weight: 300">Say hi on WhatsApp. We'll share more photos, videos and answer anything.</p></li>
+<li style="border: 1.5px solid var(--line-strong); border-radius: 24px; padding: 28px"><div style="width: 44px; height: 44px; border-radius: 50%; background: var(--inverse-bg); color: var(--inverse-fg); display: flex; align-items: center; justify-content: center; font-weight: 600">2</div><h3 style="margin: 22px 0 8px; font-size: 19px; font-weight: 600">Visit and pick a room</h3><p style="margin: 0; font-size: 15px; line-height: 1.65; color: var(--text-muted); font-weight: 300">Come see it, choose 2-sharing or 3-sharing, and set your move-in day.</p></li>
+<li style="border: 1.5px solid var(--line-strong); border-radius: 24px; padding: 28px; background: var(--accent-tint); border-color: var(--accent-line)"><div style="width: 44px; height: 44px; border-radius: 50%; background: var(--accent); color: var(--on-accent); display: flex; align-items: center; justify-content: center; font-weight: 600">3</div><h3 style="margin: 22px 0 8px; font-size: 19px; font-weight: 600">Live here 7 days, free</h3><p style="margin: 0; font-size: 15px; line-height: 1.65; color: var(--text-muted); font-weight: 300">Eat every meal, join the yoga, commute from here, meet everyone.</p></li>
+<li style="border: 1.5px solid var(--line-strong); border-radius: 24px; padding: 28px"><div style="width: 44px; height: 44px; border-radius: 50%; background: var(--inverse-bg); color: var(--inverse-fg); display: flex; align-items: center; justify-content: center; font-weight: 600">4</div><h3 style="margin: 22px 0 8px; font-size: 19px; font-weight: 600">Then decide</h3><p style="margin: 0; font-size: 15px; line-height: 1.65; color: var(--text-muted); font-weight: 300">If it feels like home, stay on. If not, no hard feelings.</p></li>
+</ol>
+</section>
+
+<!-- CALCULATOR -->
+<section class="wrap" style="max-width: 1360px; margin: 0 auto; padding-top: 120px; padding-bottom: 0">
+<div data-m="rise" style="border-radius: 40px; border: 1.5px solid var(--line-strong); padding: clamp(28px,4vw,56px); display: flex; flex-wrap: wrap; gap: 48px">
+<div style="flex: 1 1 380px; min-width: 0">
+<h2 data-m="split" style="margin: 0; font-size: clamp(30px,3.6vw,48px); line-height: 1.08; letter-spacing: -0.04em; font-weight: 600; max-width: 560px">What does your current place really cost?</h2>
+<p style="margin: 18px 0 32px; font-size: 16px; line-height: 1.7; color: var(--text-muted); font-weight: 300; max-width: 30em">Add up rent, food and the rest. Put in your own monthly numbers below.</p>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px">
+<sc-for list="{{costs}}" as="c" hint-placeholder-count="4">
+<label style="display: flex; flex-direction: column; gap: 8px; font-size: 14px; font-weight: 500">{{c.label}}
+<span style="display: flex; align-items: center; gap: 6px; border: 1.5px solid var(--control-line); border-radius: 16px; padding: 0 16px; min-height: 52px; background: var(--surface)"><span style="color: var(--text-subtle)">₹</span><input type="number" min="0" step="500" inputMode="numeric" value="{{c.value}}" onChange="{{c.set}}" style="border: 0; outline: none; font-family: inherit; font-size: 18px; font-weight: 600; width: 100%; background: transparent; color: var(--text)"></span>
+</label>
+</sc-for>
+</div>
+</div>
+<div style="flex: 1 1 340px; min-width: 0; border-radius: 28px; background: var(--accent-tint); padding: clamp(24px,3vw,40px); display: flex; flex-direction: column; justify-content: center; gap: 20px">
+<div style="display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding-bottom: 18px; border-bottom: 1px solid var(--accent-tint-line)"><span style="font-size: 15px; color: var(--text-muted)">Your place now</span><span style="font-size: clamp(26px,3vw,36px); font-weight: 600; letter-spacing: -0.03em">{{costTotal}}</span></div>
+<div style="display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding-bottom: 18px; border-bottom: 1px solid var(--accent-tint-line)"><span style="font-size: 15px; color: var(--text-muted)">Here, everything included</span><span style="font-size: clamp(26px,3vw,36px); font-weight: 600; letter-spacing: -0.03em; color: var(--accent-ink)">₹28,000</span></div>
+<p style="margin: 0; font-size: clamp(18px,1.8vw,22px); line-height: 1.45; font-weight: 500">{{costVerdict}}</p>
+<p style="margin: 0; font-size: 14px; line-height: 1.6; color: var(--text-muted)">Plus things no bill shows: yoga every morning, home food, and people to come home to. Price is negotiable.</p>
+</div>
+</div>
+</section>
+
+<!-- PRICE -->
+<section id="price" class="wrap" style="max-width: 1360px; margin: 0 auto; padding-top: 120px; padding-bottom: 40px">
+<div style="display: flex; flex-wrap: wrap; gap: 20px">
+<div data-m="price" style="flex: 1 1 460px; min-width: 0; border-radius: 32px; background: var(--surface); color: var(--text); border: 1.5px solid var(--line-strong); padding: clamp(32px,4vw,56px)">
+<p style="margin: 0; font-size: 16px; color: var(--text-subtle)">One number. Everything included.</p>
+<div style="margin-top: 20px; display: flex; align-items: baseline; flex-wrap: wrap; gap: 12px">
+<span data-count="" style="display: inline-block; font-size: clamp(56px,8vw,112px); font-weight: 600; letter-spacing: -0.05em; line-height: 1">₹28,000</span>
+<span style="font-size: 18px; color: var(--text-muted); font-weight: 300">per month, negotiable</span>
+</div>
+<div data-m="chips" style="margin-top: 36px; display: flex; flex-wrap: wrap; gap: 10px">
+<span style="border: 1px solid var(--line-strong); border-radius: 999px; padding: 10px 18px; font-size: 15px">Food, 3 meals daily</span>
+<span style="border: 1px solid var(--line-strong); border-radius: 999px; padding: 10px 18px; font-size: 15px">Maintenance</span>
+<span style="border: 1px solid var(--line-strong); border-radius: 999px; padding: 10px 18px; font-size: 15px">Furniture</span>
+<span style="border: 1px solid var(--line-strong); border-radius: 999px; padding: 10px 18px; font-size: 15px">Service charges</span>
+<span style="border: 1px solid var(--line-strong); border-radius: 999px; padding: 10px 18px; font-size: 15px">AC, fridge, microwave</span>
+</div>
+</div>
+<div data-m="price-facts" style="flex: 1 1 340px; min-width: 0; border-radius: 32px; border: 1.5px solid var(--line-strong); padding: clamp(32px,4vw,48px); display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px 20px; align-content: center">
+<div><div style="font-size: 30px; font-weight: 600; letter-spacing: -0.03em">₹0</div><div style="font-size: 15px; color: var(--text-muted); margin-top: 4px">brokerage</div></div>
+<div><div style="font-size: 30px; font-weight: 600; letter-spacing: -0.03em">1 month</div><div style="font-size: 15px; color: var(--text-muted); margin-top: 4px">deposit</div></div>
+<div><div style="font-size: 30px; font-weight: 600; letter-spacing: -0.03em">1 month</div><div style="font-size: 15px; color: var(--text-muted); margin-top: 4px">notice period</div></div>
+<div><div style="font-size: 30px; font-weight: 600; letter-spacing: -0.03em">2 or 3</div><div style="font-size: 15px; color: var(--text-muted); margin-top: 4px">per room</div></div>
+<div style="grid-column: 1 / -1; padding-top: 20px; border-top: 1px solid var(--line); font-size: 15px; line-height: 1.6; color: var(--text-muted)">For bachelors and working professionals, 22 to 35. Ideal if you work in BKC.</div>
+</div>
+</div>
+</section>
+
+<!-- TRIAL PLANNER -->
+<section id="trial" class="wrap" style="max-width: 1360px; margin: 0 auto; padding-top: 120px; padding-bottom: 120px">
+<div data-m="trial" style="border-radius: 40px; background: var(--accent-tint); padding: clamp(28px,5vw,72px); display: flex; flex-wrap: wrap; gap: 48px; align-items: center">
+<div style="flex: 1 1 380px; min-width: 0">
+<p style="margin: 0 0 18px; display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: var(--inverse-fg); background: var(--amber); padding: 8px 14px; border-radius: 999px">Limited spots</p>
+<h2 data-m="split" style="margin: 0; font-size: clamp(34px,4.4vw,62px); line-height: 1.04; letter-spacing: -0.045em; font-weight: 600">Plan your free week.</h2>
+<p style="margin: 22px 0 0; font-size: 17px; line-height: 1.7; color: var(--text-muted); font-weight: 300; max-width: 30em">Pick what suits you and we'll open WhatsApp with your message ready to send. Rooms fill quickly, so the sooner the better.</p>
+</div>
+<div data-m="trial-card" style="flex: 1 1 420px; min-width: 0; background: var(--surface); border-radius: 28px; padding: clamp(24px,3vw,40px); box-shadow: 0 30px 60px -30px rgba(0,0,0,0.6)">
+<fieldset style="border: 0; margin: 0; padding: 0">
+<legend style="font-size: 15px; font-weight: 600; margin-bottom: 12px; padding: 0">Room type</legend>
+<div style="display: flex; flex-wrap: wrap; gap: 10px">
+<sc-for list="{{rooms}}" as="r" hint-placeholder-count="3">
+<button onClick="{{r.pick}}" aria-pressed="{{r.pressed}}" style="font-family: inherit; font-size: 15px; font-weight: 500; padding: 13px 20px; min-height: 48px; border-radius: 999px; cursor: pointer; border: 1.5px solid var(--control-line); background: {{r.bg}}; color: {{r.fg}}">{{r.label}}</button>
+</sc-for>
+</div>
+</fieldset>
+<fieldset style="border: 0; margin: 28px 0 0; padding: 0">
+<legend style="font-size: 15px; font-weight: 600; margin-bottom: 12px; padding: 0">When could you start?</legend>
+<div style="display: flex; flex-wrap: wrap; gap: 10px">
+<sc-for list="{{whens}}" as="w" hint-placeholder-count="3">
+<button onClick="{{w.pick}}" aria-pressed="{{w.pressed}}" style="font-family: inherit; font-size: 15px; font-weight: 500; padding: 13px 20px; min-height: 48px; border-radius: 999px; cursor: pointer; border: 1.5px solid var(--control-line); background: {{w.bg}}; color: {{w.fg}}">{{w.label}}</button>
+</sc-for>
+</div>
+</fieldset>
+<div style="margin-top: 28px; padding: 18px 20px; border-radius: 18px; background: var(--surface-2); font-size: 15px; line-height: 1.6; color: var(--text)">
+<div style="font-size: 13px; color: var(--text-subtle); margin-bottom: 6px">Your message</div>{{message}}</div>
+<a href="{{waTrial}}" target="_blank" rel="noopener" style="margin-top: 22px; display: flex; justify-content: center; align-items: center; gap: 10px; background: var(--accent); color: var(--on-accent); text-decoration: none; padding: 18px 24px; border-radius: 999px; font-weight: 600; font-size: 17px">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 20.5l1.3-4.2A8.5 8.5 0 1 1 8 19.4l-4.5 1.1Z"></path></svg>
+Send on WhatsApp</a>
+</div>
+</div>
+</section>
+
+<!-- MARQUEE: decorative, scroll-velocity driven by motion.js; static text otherwise -->
+<div class="marquee" data-m="marquee" aria-hidden="true">
+<div class="marquee__track">
+<div class="marquee__row"><span>Eat well</span><i></i><span class="is-outline">Breathe</span><i></i><span>Live together</span><i></i><span class="is-outline">Santacruz East</span><i></i></div>
+<div class="marquee__row"><span>Eat well</span><i></i><span class="is-outline">Breathe</span><i></i><span>Live together</span><i></i><span class="is-outline">Santacruz East</span><i></i></div>
+</div>
+</div>
+
+<!-- FOOTER -->
+<footer class="foot" style="border-top: 1.5px solid var(--line-strong)">
+<div class="wrap" style="max-width: 1360px; margin: 0 auto; padding-top: 48px; padding-bottom: 48px; display: flex; flex-wrap: wrap; gap: 32px; justify-content: space-between; align-items: flex-end">
+<div>
+<div data-m="split" style="font-size: clamp(28px,3.4vw,44px); font-weight: 600; letter-spacing: -0.04em; line-height: 1.1; max-width: 560px">More than a room. A better way to live.</div>
+<p style="margin: 16px 0 0; font-size: 15px; color: var(--text-muted)">Santacruz East, Mumbai. 2 minutes' walk from Santacruz station and Aquiline.</p>
+</div>
+<a href="{{waGeneral}}" target="_blank" rel="noopener" style="font-size: clamp(22px,2.6vw,34px); font-weight: 600; color: var(--accent-ink); text-decoration: none; letter-spacing: -0.02em">+91 92570 23031</a>
+</div>
+</footer>
+
+<!-- FLOATING CTA -->
+<a href="#trial" data-m="float-cta" style="position: fixed; right: 20px; bottom: 20px; z-index: 40; display: inline-flex; align-items: center; gap: 10px; background: var(--inverse-bg); color: var(--inverse-fg); text-decoration: none; padding: 14px 22px 14px 16px; border-radius: 999px; font-weight: 600; font-size: 15px; box-shadow: 0 16px 36px -14px rgba(0,0,0,0.7)"><span style="width: 10px; height: 10px; border-radius: 50%; background: var(--amber); display: inline-block"></span>Stay 7 days free</a>
+
+<!-- LIGHTBOX -->
+<sc-if value="{{lightboxOpen}}" hint-placeholder-val="{{ false }}">
+<div style="position: fixed; inset: 0; background: rgba(0,0,0,0.88); display: flex; align-items: center; justify-content: center; padding: 24px; z-index: 50">
+<img src="{{lightboxSrc}}" alt="{{lightboxAlt}}" style="max-width: 100%; max-height: 86vh; border-radius: 20px; object-fit: contain">
+<button onClick="{{closeLightbox}}" aria-label="Close photo" style="position: absolute; top: 20px; right: 20px; width: 52px; height: 52px; border-radius: 50%; border: 0; background: var(--inverse-bg); cursor: pointer; display: flex; align-items: center; justify-content: center">
+<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#000000" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 4l12 12M16 4L4 16"></path></svg>
+</button>
+</div>
+</sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":6200}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { room: '2-sharing', when: 'This week', lb: null, rent: 18000, food: 9000, help: 2500, bills: 2500, ba: 50, baRoom: 0 };
+  }
+  renderVals() {
+    const s = this.state;
+    const num = '919257023031';
+    const wa = (t) => 'https://wa.me/' + num + '?text=' + encodeURIComponent(t);
+    const msg = 'Hi! I found your sattvic flat in Santacruz East and would love to try the 7-day free stay. I am looking for a ' + s.room + ' room and could start ' + s.when.toLowerCase() + '. Could you share details?';
+    const pill = (on) => ({ bg: on ? 'var(--inverse-bg)' : 'transparent', fg: on ? 'var(--inverse-fg)' : 'var(--text)', pressed: on ? 'true' : 'false' });
+    const rooms = ['2-sharing', '3-sharing', 'Not sure yet'].map((l) => Object.assign({ label: l, pick: () => this.setState({ room: l }) }, pill(s.room === l)));
+    const whens = ['This week', 'Next week', 'This month'].map((l) => Object.assign({ label: l, pick: () => this.setState({ when: l }) }, pill(s.when === l)));
+    const G = [
+      { src: './assets/829e4c94b9a29258d5f2e0397e4c90da.jpg', caption: 'The living room, big enough for the whole house', alt: 'Large living room with sofas, red feature wall and two windows', radius: '24px', ratio: '3 / 4' },
+      { src: './assets/8d9e400942faef25bb36c0a19c88b81c.jpg', caption: 'Bedroom with AC and a textured accent wall', alt: 'Bright bedroom with peach accent wall, double bed and side tables', radius: '24px', ratio: '3 / 4' },
+      { src: './assets/45e21a063c978e278603d864e3ca2567.jpg', caption: 'Bedroom under the arched window', alt: 'Bedroom with green tufted headboard, marble floor and arched window', radius: '24px', ratio: '3 / 4' },
+      { src: './assets/87fb7bf7edd9cfb14ca3782879179669.jpg', caption: 'Kitchen with fridge and microwave', alt: 'Kitchen with steel refrigerator, microwave, gas stove and cabinets', radius: '24px', ratio: '4 / 3' },
+      { src: './assets/a0c2efaabe5fca6dbce392f0a189b72d.jpg', caption: 'Shared rooms for 2 or 3', alt: 'Bedroom with striped bedding and patterned curtains', radius: '24px', ratio: '4 / 3' },
+      { src: './assets/80e9af1488bacdf1c034b40a0579e445.jpg', caption: 'Clean bathrooms with glass showers', alt: 'Bathroom with glass shower partition, wall-hung toilet and basin', radius: '24px', ratio: '4 / 3' }
+    ];
+    // Before/after pairs: left = stock photo of a typical shared room, right = real photo of this flat.
+    // Each left-hand photo carries its own `credit` string, rendered under the slider.
+    const BA = [
+      { label: 'Living room', mock: './assets/pg-living.jpg', mockAlt: 'A typical shared flat living room: the sofa buried under jackets, clothes, books and bottles, with a backpack dumped on top', credit: 'Left: Yinan Chen / goodfreephotos.com · public domain', real: './assets/829e4c94b9a29258d5f2e0397e4c90da.jpg', realAlt: 'The sattvic flat living room: large and tidy, with sofas and two windows' },
+      { label: 'Bedroom', mock: './assets/pg-bedroom.jpg', mockAlt: 'A typical sharing room: metal bunk beds crammed together, bedsheets hung up as curtains for privacy, an unmade bed and bags on the floor', credit: 'Left: Sgroey / Wikimedia Commons · CC BY 4.0', real: './assets/8d9e400942faef25bb36c0a19c88b81c.jpg', realAlt: 'A bedroom in the sattvic flat: bright, with a double bed, side tables and AC' },
+      { label: 'Kitchen', mock: './assets/pg-kitchen.jpg', mockAlt: 'A typical shared kitchen: aluminium pots left unwashed in a stained concrete sink below a dripping tap', credit: 'Left: Scott Umstattd / Unsplash · CC0', real: './assets/87fb7bf7edd9cfb14ca3782879179669.jpg', realAlt: 'The sattvic flat kitchen: clean, with fridge, microwave, gas stove and cabinets' }
+    ];
+    const gallery = G.map((g) => Object.assign({}, g, { label: 'Open photo: ' + g.caption, open: () => this.setState({ lb: g }) }));
+    return {
+      waGeneral: wa('Hi! I saw your sattvic flat in Santacruz East. Could you share photos, videos and details?'),
+      waTrial: wa(msg),
+      message: msg,
+      rooms: rooms,
+      whens: whens,
+      gallery: gallery,
+      baValue: String(s.ba),
+      baPos: s.ba + '%',
+      baClip: (100 - s.ba) + '%',
+      baValueText: s.ba + '% typical flat, ' + (100 - s.ba) + '% this flat',
+      baSet: (e) => { const v = parseInt(e.target.value, 10); this.setState({ ba: isNaN(v) ? 50 : Math.max(0, Math.min(100, v)) }); },
+      baRooms: BA.map((r, i) => Object.assign({ label: r.label, pick: () => this.setState({ baRoom: i, ba: 50 }) }, pill(s.baRoom === i))),
+      baMock: BA[s.baRoom].mock,
+      baMockAlt: BA[s.baRoom].mockAlt,
+      baReal: BA[s.baRoom].real,
+      baRealAlt: BA[s.baRoom].realAlt,
+      baCredit: BA[s.baRoom].credit,
+      lightboxOpen: !!s.lb,
+      lightboxSrc: s.lb ? s.lb.src : '',
+      lightboxAlt: s.lb ? s.lb.alt : '',
+      closeLightbox: () => this.setState({ lb: null }),
+      vidRef: (el) => { this.vid = el; if (el && !s.vidPaused) { el.muted = true; const p = el.play && el.play(); if (p && p.catch) p.catch(() => {}); } },
+      vidAutoplay: true,
+      vidPaused: !!s.vidPaused,
+      vidPlaying: !s.vidPaused,
+      vidLabel: s.vidPaused ? 'Play background video' : 'Pause background video',
+      toggleVideo: () => { const v = this.vid; const pause = !s.vidPaused; if (v) { if (pause) v.pause(); else { const p = v.play(); if (p && p.catch) p.catch(() => {}); } } this.setState({ vidPaused: pause }); },
+      costs: [['rent', 'Your rent share'], ['food', 'Food and ordering in'], ['help', 'Cook or maid'], ['bills', 'Electricity, wifi, misc']].map((p) => ({ label: p[1], value: String(s[p[0]]), set: (e) => { const v = parseInt(e.target.value, 10); this.setState({ [p[0]]: isNaN(v) ? 0 : v }); } })),
+      costTotal: '₹' + (s.rent + s.food + s.help + s.bills).toLocaleString('en-IN'),
+      costVerdict: (function (t) { const d = t - 28000; const f = (n) => '₹' + Math.abs(n).toLocaleString('en-IN'); if (d > 0) return 'You would save ' + f(d) + ' a month here, and eat better.'; if (d === 0) return 'Same money. A much better life.'; return 'Just ' + f(d) + ' more a month for three meals a day, yoga and a calmer home.'; })(s.rent + s.food + s.help + s.bills),
+      compare: [
+        { old: 'Ordering junk food at 11 pm because nobody cooked', now: 'Fresh sattvic vegetarian meals, three times a day' },
+        { old: 'Mornings that start with scrolling in bed', now: 'Guided yoga and meditation to start the day' },
+        { old: 'Flatmates you only see in the corridor', now: 'Working professionals who share dinner and conversation' },
+        { old: 'Broker fees and a heavy deposit', now: 'Zero brokerage and just a 1-month deposit' },
+        { old: 'Rent, food, maid and bills paid separately', now: 'One all-inclusive monthly amount' },
+        { old: 'Sign first, find out later', now: 'Stay 7 days free before you decide' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

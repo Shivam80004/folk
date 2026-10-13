@@ -1,0 +1,108 @@
+/* ===========================================================================
+   MOTION LAYER
+   Everything here is either decorative (preloader, cursor, marquee, progress)
+   or only applies once motion.js has opted in (html.is-hscroll).
+   html.has-motion is set in <head> unless the visitor prefers reduced motion.
+   =========================================================================== */
+
+/* Lenis */
+html.lenis, html.lenis body { height: auto; }
+.lenis:not(.lenis-autoToggle).lenis-stopped { overflow: clip; }
+.lenis.lenis-smooth iframe { pointer-events: none; }
+
+/* ---------- Preloader ---------- */
+.preloader {
+  position: fixed; inset: 0; z-index: 1000;
+  display: flex; align-items: center; justify-content: center;
+  background: #080A09; color: #F2F0EA;
+  font-family: Poppins, 'Helvetica Neue', sans-serif;
+  /* Safety net: if motion.js never runs, get out of the way on our own */
+  animation: preloader-failsafe 0.6s ease 6s forwards;
+}
+html:not(.has-motion) .preloader { display: none; }
+@keyframes preloader-failsafe { to { opacity: 0; visibility: hidden; } }
+.preloader__inner { display: flex; flex-direction: column; align-items: center; gap: 18px; }
+.preloader__mark { color: #7CC79E; }
+.preloader__word { overflow: hidden; font-size: clamp(28px, 4vw, 52px); font-weight: 600; letter-spacing: -0.04em; line-height: 1.1; }
+.preloader__word span { display: inline-block; }
+.preloader__count {
+  position: absolute; right: clamp(20px, 5vw, 72px); bottom: clamp(24px, 6vh, 64px);
+  font-size: clamp(56px, 10vw, 160px); font-weight: 600; letter-spacing: -0.06em; line-height: 1;
+  font-variant-numeric: tabular-nums; color: rgba(242, 240, 234, 0.12);
+}
+.preloader__bar { position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: rgba(242, 240, 234, 0.08); }
+.preloader__bar span { display: block; height: 100%; background: #7CC79E; transform-origin: 0 50%; transform: scaleX(0); }
+
+/* ---------- Scroll progress ---------- */
+.scroll-progress { position: fixed; top: 0; left: 0; right: 0; height: 2px; z-index: 60; pointer-events: none; }
+.scroll-progress span { display: block; height: 100%; background: linear-gradient(90deg, #7CC79E, #F2A93B); transform-origin: 0 50%; transform: scaleX(0); }
+html:not(.has-motion) .scroll-progress { display: none; }
+
+/* ---------- Cursor (fine pointers only, shown by motion.js) ---------- */
+.cursor { position: fixed; top: 0; left: 0; z-index: 999; pointer-events: none; display: none; }
+html.has-cursor .cursor { display: block; }
+.cursor__dot, .cursor__ring { position: fixed; top: 0; left: 0; border-radius: 50%; pointer-events: none; }
+.cursor__dot { width: 6px; height: 6px; margin: -3px 0 0 -3px; background: #F2F0EA; }
+.cursor__ring {
+  width: 40px; height: 40px; margin: -20px 0 0 -20px;
+  border: 1px solid rgba(242, 240, 234, 0.5);
+  display: flex; align-items: center; justify-content: center;
+  transition: background-color .3s ease, border-color .3s ease;
+}
+.cursor__label { font: 600 11px/1 Poppins, sans-serif; letter-spacing: 0.08em; text-transform: uppercase; color: #0E1110; opacity: 0; }
+.cursor.is-label .cursor__ring { background: #F2F0EA; border-color: #F2F0EA; }
+.cursor.is-label .cursor__label { opacity: 1; }
+.cursor.is-hover .cursor__ring { border-color: #7CC79E; background: rgba(124, 199, 158, 0.12); }
+
+/* ---------- Marquee ---------- */
+.marquee { overflow: hidden; padding: clamp(40px, 7vw, 96px) 0; border-top: 1px solid var(--line); user-select: none; }
+.marquee__track { display: flex; width: max-content; will-change: transform; }
+.marquee__row { display: flex; align-items: center; flex: none; }
+.marquee__row span {
+  padding: 0 clamp(18px, 2.4vw, 40px);
+  font-size: clamp(56px, 10vw, 168px); font-weight: 600; letter-spacing: -0.05em; line-height: 1; white-space: nowrap;
+  color: var(--text);
+}
+.marquee__row span.is-outline { color: transparent; -webkit-text-stroke: 1.5px var(--accent-ink); }
+.marquee__row i { flex: none; width: clamp(18px, 2vw, 32px); height: clamp(18px, 2vw, 32px); border-radius: 50%; background: var(--amber); }
+
+/* ---------- "A day here" horizontal scroll (desktop + motion only) ---------- */
+.day__progress { display: none; }
+html.is-hscroll .day { position: relative; }
+/* minmax(0, 1fr) is doing real work: an auto column would be sized by the
+   max-content width of the card track and blow out past the viewport. */
+html.is-hscroll .day__sticky {
+  position: sticky; top: 0; height: 100vh; height: 100svh; overflow: hidden;
+  display: grid; grid-template-columns: minmax(0, 1fr); align-content: center;
+}
+/* Reproduce, by hand, the width a .wrap block normally gets.
+   .day__inner carries `max-width: 1360px; margin: 0 auto` inline and .wrap is
+   content-box, so a .wrap block is `min(container, 1360 + padding)` wide. As a
+   grid item those auto margins make it shrink-to-fit instead, and it sizes
+   itself around the max-content width of the card track: 64px wider than every
+   other section on the page. So: drop the auto margins, restate the cap as a
+   border-box outer width, and centre with justify-self. Matches a plain .wrap
+   at every viewport width, narrow or ultrawide. */
+html.is-hscroll .day__inner {
+  margin: 0 !important;
+  width: 100%;
+  box-sizing: border-box;
+  max-width: calc(1360px + 2 * clamp(20px, 5vw, 72px)) !important;
+  justify-self: center;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+html.is-hscroll .day__track { display: flex !important; gap: 20px !important; width: max-content; will-change: transform; }
+html.is-hscroll .day__track > li { flex: none; width: clamp(320px, 30vw, 440px); }
+html.is-hscroll .day__progress {
+  display: block; position: relative; margin-top: 40px; height: 2px; max-width: 320px;
+  background: var(--line-strong); border-radius: 2px; overflow: hidden;
+}
+html.is-hscroll .day__progress-fill { position: absolute; inset: 0; background: var(--accent-ink); transform-origin: 0 50%; transform: scaleX(0); }
+
+/* SplitText masks: keep descenders visible */
+.split-line { padding-bottom: 0.08em; margin-bottom: -0.08em; }
+
+@media (prefers-reduced-motion: reduce) {
+  .preloader, .cursor, .scroll-progress { display: none !important; }
+}
