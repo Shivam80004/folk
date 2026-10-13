@@ -7,6 +7,7 @@ font sizes, spacing, radii, shadows, layout — which an implementation
 should replicate faithfully in its own components and styling system
 rather than copy wholesale.
 
+
 ## Contents
 
 - `Main.dc.html` — the artboard (a Design Component: an `<x-dc>`
