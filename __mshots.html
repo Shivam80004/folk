@@ -9,7 +9,7 @@ document.body.style.width = (W * 7) + 'px';
 for (let i = 0; i < N; i++) {
   const f = document.createElement('iframe');
   f.style.cssText = 'border:0;width:' + W + 'px;height:' + H + 'px;display:block';
-  f.src = 'Main.dc.html';
+  f.src = 'index.html';
   f.onload = () => setTimeout(() => f.contentWindow.scrollTo(0, (start + i) * (H - 60)), 1500);
   document.body.appendChild(f);
 }

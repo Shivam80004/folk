@@ -11,7 +11,7 @@ let done = 0;
 widths.forEach((w) => {
   const f = document.createElement('iframe');
   f.style.cssText = 'border:0;width:' + w + 'px;height:800px;display:block';
-  f.src = 'Main.dc.html';
+  f.src = 'index.html';
   f.onload = () => setTimeout(() => {
     const d = f.contentDocument, win = f.contentWindow, vw = win.innerWidth;
     const bad = [];

@@ -807,7 +807,7 @@ function setupGlassCarousel(wrapper, THREE) {
 
 /* ---------------------------------------------------------------------------
    Boot
-   Main.dc.html is rendered by its runtime (React) after this module runs, and
+   index.html is rendered by its runtime (React) after this module runs, and
    that runtime may replace nodes later. So rather than a one-off
    DOMContentLoaded scan, watch the document for carousel sections appearing.
    Reduced motion: no canvas at all, the authored photo row stays as a normal
